@@ -31,7 +31,12 @@ app.post('/login', async (req, res) => {
                 SECRET_KEY, 
                 { expiresIn: '24h' }
             );
-            res.json({ mensagem: "Logado!", token: token });
+            // IMPORTANTE: Retornar o institution_id aqui
+            res.json({ 
+                mensagem: "Logado!", 
+                token: token, 
+                institution_id: user.institution_id 
+            });
         } else {
             res.status(401).json({ erro: "E-mail ou senha incorretos" });
         }
