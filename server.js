@@ -78,7 +78,8 @@ app.get('/agendamentos/ocupados', async (req, res) => {
 
 // CRIAR AGENDAMENTO (PÚBLICO PARA CLIENTES)
 app.post('/agendamentos', async (req, res) => {
-  const { nome, email, data, horario, institution_id } = req.body;
+    const { institution_id } = req.params;
+    const { nome, email, data, horario } = req.body;
 
   try {
     // 1. Validar se a data não é passada
@@ -128,37 +129,46 @@ app.get('/agendamentos/ocupados', async (req, res) => {
 
 // CRIAR AGENDAMENTO (PÚBLICO PARA CLIENTES)
 app.post('/agendamentos', async (req, res) => {
-  const { nome, email, data, horario, institution_id } = req.body;
+  const token = req.headers['authorization'];
 
   try {
-    // 1. Validar se a data não é passada
+    const dados = jwt.verify(token, SECRET_KEY); // pega do token
+    const institution_id = dados.institution_id;
+
+    const { nome, email, data, horario } = req.body;
+
+    // validação simples
+    if (!nome || !email || !data || !horario) {
+      return res.status(400).json({ erro: 'Dados incompletos' });
+    }
+
     const dataAgendamento = new Date(data + 'T00:00:00');
     const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
+    hoje.setHours(0,0,0,0);
 
     if (dataAgendamento < hoje) {
       return res.status(400).json({ erro: 'Data inválida.' });
     }
 
-    // 2. Verificar se já existe agendamento
     const check = await pool.query(
       'SELECT id FROM appointments WHERE data = $1 AND horario = $2 AND institution_id = $3',
       [data, horario, institution_id]
     );
 
     if (check.rows.length > 0) {
-      return res.status(400).json({ erro: 'Este horário acabou de ser ocupado.' });
+      return res.status(400).json({ erro: 'Horário ocupado' });
     }
 
-    // 3. Inserir
     await pool.query(
       `INSERT INTO appointments (nome, email, data, horario, institution_id)
        VALUES ($1, $2, $3, $4, $5)`,
       [nome, email, data, horario, institution_id]
     );
-    res.status(201).json({ mensagem: 'Agendamento realizado!' });
+
+    res.status(201).json({ mensagem: 'Agendado!' });
+
   } catch (error) {
-    res.status(500).json({ erro: 'Erro interno ao agendar.' });
+    return res.status(401).json({ erro: 'Não autorizado' });
   }
 });
 
