@@ -77,7 +77,7 @@ app.get('/agendamentos/ocupados', async (req, res) => {
 });
 
 // CRIAR AGENDAMENTO (PÚBLICO PARA CLIENTES)
-app.post('/agendamentos', async (req, res) => {
+app.post('/agendamentos/:institution_id', async (req, res) => {
     const { institution_id } = req.params;
     const { nome, email, data, horario } = req.body;
 
@@ -127,8 +127,8 @@ app.get('/agendamentos/ocupados', async (req, res) => {
     }
 });
 
-// CRIAR AGENDAMENTO (PÚBLICO PARA CLIENTES)
-app.post('/agendamentos', async (req, res) => {
+// CRIAR AGENDAMENTO (PRIVADO PARA DONOS)
+app.post('/agendamentos/users', async (req, res) => {
   const token = req.headers['authorization'];
 
   try {
