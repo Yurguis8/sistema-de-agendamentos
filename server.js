@@ -129,7 +129,12 @@ app.get('/agendamentos/ocupados', async (req, res) => {
 
 // CRIAR AGENDAMENTO (PRIVADO PARA DONOS)
 app.post('/agendamentos/users', async (req, res) => {
-  const token = req.headers['authorization'];
+  let token = req.headers['authorization'];
+  
+  // Se o frontend enviar "Bearer <token>", extraímos apenas o código
+  if (token && token.startsWith('Bearer ')) {
+    token = token.split(' ')[1];
+  }
 
   try {
     const dados = jwt.verify(token, SECRET_KEY); // pega do token
