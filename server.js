@@ -238,7 +238,23 @@ app.delete('/agendamentos/:id', async (req, res) => {
     }
 });
 
+const cron = require('node-cron');
+
+// Roda todo dia à meia-noite (00:00)
+cron.schedule('0 0 * * *', async () => {
+  try {
+    console.log('Limpando agendamentos antigos...');
+    const resultado = await pool.query(
+      'DELETE FROM appointments WHERE data < CURRENT_DATE'
+    );
+    console.log(`${resultado.rowCount} agendamentos removidos.`);
+  } catch (err) {
+    console.error('Erro na limpeza automática:', err);
+  }
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`🔥 Backend rodando na porta ${port}`);
 });
+
