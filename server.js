@@ -128,7 +128,7 @@ app.get('/agendamentos/ocupados', async (req, res) => {
 });
 
 // CRIAR AGENDAMENTO (PRIVADO PARA DONOS)
-app.post('/agendamentos/users', async (req, res) => {
+app.post('/users/agendamentos', async (req, res) => {
   let token = req.headers['authorization'];
 
   // Verifica se o token foi enviado
