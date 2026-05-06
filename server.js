@@ -130,50 +130,65 @@ app.get('/agendamentos/ocupados', async (req, res) => {
 // CRIAR AGENDAMENTO (PRIVADO PARA DONOS)
 app.post('/agendamentos/users', async (req, res) => {
   let token = req.headers['authorization'];
-  
-  // Se o frontend enviar "Bearer <token>", extraímos apenas o código
-  if (token && token.startsWith('Bearer ')) {
+
+  // validar token
+  if (!token) {
+    return res.status(401).json({ erro: 'Token não enviado' });
+  }
+
+  if (token.startsWith('Bearer ')) {
     token = token.split(' ')[1];
   }
 
   try {
-    const dados = jwt.verify(token, SECRET_KEY); // pega do token
+    const dados = jwt.verify(token, SECRET_KEY);
     const institution_id = dados.institution_id;
 
     const { nome, email, data, horario } = req.body;
 
-    // validação simples
+    // validação
     if (!nome || !email || !data || !horario) {
       return res.status(400).json({ erro: 'Dados incompletos' });
     }
 
-    const dataAgendamento = new Date(data + 'T00:00:00');
+    // validar formato de horário (HH:MM)
+    if (!/^\d{2}:\d{2}$/.test(horario)) {
+      return res.status(400).json({ erro: 'Horário inválido' });
+    }
+
+    const dataAgendamento = new Date(data);
+    dataAgendamento.setHours(0,0,0,0);
+
     const hoje = new Date();
     hoje.setHours(0,0,0,0);
 
     if (dataAgendamento < hoje) {
-      return res.status(400).json({ erro: 'Data inválida.' });
+      return res.status(400).json({ erro: 'Data inválida' });
     }
 
-    const check = await pool.query(
-      'SELECT id FROM appointments WHERE data = $1 AND horario = $2 AND institution_id = $3',
-      [data, horario, institution_id]
-    );
-
-    if (check.rows.length > 0) {
-      return res.status(400).json({ erro: 'Horário ocupado' });
-    }
-
+    // INSERT com proteção contra duplicação (usa constraint no banco)
     await pool.query(
       `INSERT INTO appointments (nome, email, data, horario, institution_id)
        VALUES ($1, $2, $3, $4, $5)`,
       [nome, email, data, horario, institution_id]
     );
 
-    res.status(201).json({ mensagem: 'Agendado!' });
+    return res.status(201).json({ mensagem: 'Agendado com sucesso' });
 
   } catch (error) {
-    return res.status(401).json({ erro: 'Não autorizado' });
+    console.error(error);
+
+    // erro de token
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    // erro de duplicação (PRECISA do UNIQUE no banco)
+    if (error.code === '23505') {
+      return res.status(400).json({ erro: 'Horário já está ocupado' });
+    }
+
+    return res.status(500).json({ erro: 'Erro interno do servidor' });
   }
 });
 
