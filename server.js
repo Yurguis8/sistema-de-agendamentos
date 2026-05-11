@@ -113,19 +113,7 @@ app.post('/agendamentos/:institution_id', async (req, res) => {
   }
 });
 
-// ROTA PARA CONSULTAR HORÁRIOS OCUPADOS (PÚBLICA)
-app.get('/agendamentos/ocupados', async (req, res) => {
-    const { data, instId } = req.query;
-    try {
-        const result = await pool.query(
-            'SELECT horario FROM appointments WHERE data = $1 AND institution_id = $2',
-            [data, instId]
-        );
-        res.json(result.rows.map(row => row.horario));
-    } catch (err) {
-        res.status(500).json([]);
-    }
-});
+
 
 // CRIAR AGENDAMENTO (PRIVADO PARA DONOS)
 app.post('/users/agendamentos', async (req, res) => {
