@@ -226,18 +226,21 @@ app.delete('/agendamentos/:id', async (req, res) => {
     }
 });
 
-const cron = require('node-cron');
+const CRON_KEY = process.env.CRON_SECRET_KEY; // O Node vai buscar isso nas configurações do servidor
 
-// Roda todo dia à meia-noite (00:00)
-cron.schedule('0 0 * * *', async () => {
+app.get('/tasks/limpar-agendamentos', async (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+
+  // Verifica se a chave foi enviada E se é igual à que definimos no servidor
+  if (!apiKey || apiKey !== CRON_KEY) {
+    return res.status(401).json({ erro: 'Não autorizado' });
+  }
+
   try {
-    console.log('Limpando agendamentos antigos...');
-    const resultado = await pool.query(
-      'DELETE FROM appointments WHERE data < CURRENT_DATE'
-    );
-    console.log(`${resultado.rowCount} agendamentos removidos.`);
+    const resultado = await pool.query('DELETE FROM appointments WHERE data < CURRENT_DATE');
+    res.json({ sucesso: true, removidos: resultado.rowCount });
   } catch (err) {
-    console.error('Erro na limpeza automática:', err);
+    res.status(500).json({ erro: 'Falha no banco' });
   }
 });
 
